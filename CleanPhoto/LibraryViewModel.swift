@@ -1,12 +1,11 @@
 import SwiftUI
+import Combine
 
 @MainActor
 final class LibraryViewModel: ObservableObject {
     @Published private(set) var accessState: LibraryAccessState
     @Published private(set) var assets: [PhotoAsset] = []
     @Published private(set) var isLoading = false
-
-    private let service: PhotoLibraryService
 
     @Published var isReviewingBatch = false
     @Published var isDeleting = false

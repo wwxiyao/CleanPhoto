@@ -1,13 +1,17 @@
 import SwiftUI
 import Photos
+import CoreLocation
+import ImageIO
 
 struct SwipeCardView: View {
     let asset: PhotoAsset
+    let progressText: String?
     let onSwipeUp: () -> Void
     let onSwipeLeft: () -> Void
     
     @State private var offset: CGSize = .zero
     @State private var image: UIImage?
+    @State private var metadata: PhotoMetadata?
     
     var body: some View {
         ZStack {
@@ -16,13 +20,54 @@ struct SwipeCardView: View {
                 .shadow(radius: 5)
             
             if let image {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                GeometryReader { geometry in
+                    ZStack {
+                        // Background: Blurred version to fill space
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: geometry.size.width, height: geometry.size.height)
+                            .blur(radius: 20)
+                            .opacity(0.5)
+                            .clipped()
+                        
+                        // Foreground: Actual image fitting the frame
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: geometry.size.width, height: geometry.size.height)
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 20))
             } else {
                 ProgressView()
+            }
+
+            if let progressText {
+                Text(progressText)
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.black.opacity(0.6))
+                    .clipShape(Capsule())
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .padding(12)
+            }
+
+            if let metadata, !metadata.lines.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(metadata.lines, id: \.self) { line in
+                        Text(line)
+                            .font(.caption)
+                            .foregroundColor(.white)
+                    }
+                }
+                .padding(10)
+                .background(Color.black.opacity(0.55))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+                .padding(12)
             }
             
             // Visual indicators for swipe direction
@@ -58,12 +103,13 @@ struct SwipeCardView: View {
                     handleDragEnded(gesture)
                 }
         )
-        .task {
-            image = await requestImage()
+        .task(id: asset.id) {
+            loadProgressiveImage()
+            metadata = await loadMetadata()
         }
     }
     
-    private func handleDragEnded(_ gesture: DragGesture) {
+    private func handleDragEnded(_ gesture: DragGesture.Value) {
         let horizontalThreshold: CGFloat = -150
         let verticalThreshold: CGFloat = -150
         
@@ -87,20 +133,113 @@ struct SwipeCardView: View {
         }
     }
     
-    private func requestImage() async -> UIImage? {
-        await withCheckedContinuation { continuation in
-            let options = PHImageRequestOptions()
-            options.deliveryMode = .opportunistic
-            options.isNetworkAccessAllowed = true
-            
-            PHImageManager.default().requestImage(
-                for: asset.asset,
-                targetSize: CGSize(width: 1000, height: 1000),
-                contentMode: .aspectFit,
-                options: options
-            ) { image, _ in
-                continuation.resume(returning: image)
+    private func loadProgressiveImage() {
+        let options = PHImageRequestOptions()
+        options.deliveryMode = .opportunistic
+        options.isNetworkAccessAllowed = true
+        options.isSynchronous = false
+
+        PHImageManager.default().requestImage(
+            for: asset.asset,
+            targetSize: CGSize(width: 1000, height: 1000),
+            contentMode: .aspectFit,
+            options: options
+        ) { result, _ in
+            if let result = result {
+                self.image = result
             }
         }
+    }
+
+    private func loadMetadata() async -> PhotoMetadata? {
+        let dateText = asset.creationDate.map { Self.dateFormatter.string(from: $0) }
+        
+        var locationText: String?
+        if let location = asset.location {
+            locationText = await resolveLocationName(location)
+        }
+        
+        let deviceText = await requestDeviceModel()
+
+        guard dateText != nil || locationText != nil || deviceText != nil else { return nil }
+        return PhotoMetadata(dateText: dateText, locationText: locationText, deviceText: deviceText)
+    }
+
+    private func resolveLocationName(_ location: CLLocation) async -> String? {
+        let geocoder = CLGeocoder()
+        do {
+            let placemarks = try await geocoder.reverseGeocodeLocation(location, preferredLocale: Locale(identifier: "zh_CN"))
+            guard let placemark = placemarks.first else { return nil }
+            return placemark.locality ?? placemark.administrativeArea ?? placemark.country
+        } catch {
+            return nil
+        }
+    }
+
+    private func requestDeviceModel() async -> String? {
+        await withCheckedContinuation { continuation in
+            let options = PHImageRequestOptions()
+            options.deliveryMode = .highQualityFormat
+            options.isNetworkAccessAllowed = true
+
+            var didResume = false
+            PHImageManager.default().requestImageDataAndOrientation(
+                for: asset.asset,
+                options: options
+            ) { data, _, _, _ in
+                guard !didResume else { return }
+                didResume = true
+                guard let data else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+                continuation.resume(returning: Self.deviceText(from: data))
+            }
+        }
+    }
+
+    private static func deviceText(from imageData: Data) -> String? {
+        guard let source = CGImageSourceCreateWithData(imageData as CFData, nil),
+              let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+              let tiff = properties[kCGImagePropertyTIFFDictionary] as? [CFString: Any] else {
+            return nil
+        }
+
+        let make = (tiff[kCGImagePropertyTIFFMake] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let model = (tiff[kCGImagePropertyTIFFModel] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let parts = [make, model].compactMap { value -> String? in
+            guard let value, !value.isEmpty else { return nil }
+            return value
+        }
+
+        guard !parts.isEmpty else { return nil }
+        return parts.joined(separator: " ")
+    }
+
+    private static let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }()
+}
+
+private struct PhotoMetadata {
+    let dateText: String?
+    let locationText: String?
+    let deviceText: String?
+
+    var lines: [String] {
+        var items: [String] = []
+        if let dateText {
+            items.append("Date: \(dateText)")
+        }
+        if let locationText {
+            items.append("Location: \(locationText)")
+        }
+        if let deviceText {
+            items.append("Device: \(deviceText)")
+        }
+        return items
     }
 }

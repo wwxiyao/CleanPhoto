@@ -48,16 +48,19 @@ struct PhotoThumbnailView: View {
     private func requestThumbnail() async -> UIImage? {
         await withCheckedContinuation { continuation in
             let options = PHImageRequestOptions()
-            options.deliveryMode = .opportunistic
+            options.deliveryMode = .fastFormat
             options.resizeMode = .fast
             options.isNetworkAccessAllowed = true
 
+            var didResume = false
             PHImageManager.default().requestImage(
                 for: asset.asset,
                 targetSize: targetSize,
                 contentMode: .aspectFill,
                 options: options
             ) { image, _ in
+                guard !didResume else { return }
+                didResume = true
                 continuation.resume(returning: image)
             }
         }

@@ -9,49 +9,46 @@ struct SwipeContainerView: View {
     @State private var currentIndex = 0
     
     var body: some View {
-        ZStack {
-            if currentIndex < assets.count {
-                // Show a background card for stack effect if there's more
-                if currentIndex + 1 < assets.count {
+        GeometryReader { proxy in
+            let cardWidth = min(proxy.size.width * 0.9, 420)
+            let cardHeight = min(proxy.size.height * 0.72, 600)
+
+            ZStack {
+                if currentIndex < assets.count {
+                    let progressText = "\(currentIndex + 1)/\(assets.count)"
+
+                    // The current active card
                     SwipeCardView(
-                        asset: assets[currentIndex + 1],
-                        onSwipeUp: {},
-                        onSwipeLeft: {}
+                        asset: assets[currentIndex],
+                        progressText: progressText,
+                        onSwipeUp: {
+                            onSwipeUp(assets[currentIndex])
+                            advance()
+                        },
+                        onSwipeLeft: {
+                            onSwipeLeft(assets[currentIndex])
+                            advance()
+                        }
                     )
-                    .scaleEffect(0.95)
-                    .offset(y: 10)
-                    .opacity(0.8)
-                    .disabled(true)
-                }
-                
-                // The current active card
-                SwipeCardView(
-                    asset: assets[currentIndex],
-                    onSwipeUp: {
-                        onSwipeUp(assets[currentIndex])
-                        advance()
-                    },
-                    onSwipeLeft: {
-                        onSwipeLeft(assets[currentIndex])
-                        advance()
+                    .frame(width: cardWidth, height: cardHeight)
+                    .id(assets[currentIndex].id) // Ensure view identity changes
+                } else {
+                    VStack(spacing: 20) {
+                        Image(systemName: "checkmark.seal.fill")
+                            .font(.system(size: 60))
+                            .foregroundColor(.blue)
+                        Text("Batch Complete!")
+                            .font(.title2.bold())
+                        Button("Review Selection") {
+                            onFinished()
+                        }
+                        .buttonStyle(.borderedProminent)
                     }
-                )
-                .id(assets[currentIndex].id) // Ensure view identity changes
-            } else {
-                VStack(spacing: 20) {
-                    Image(systemName: "checkmark.seal.fill")
-                        .font(.system(size: 60))
-                        .foregroundColor(.blue)
-                    Text("Batch Complete!")
-                        .font(.title2.bold())
-                    Button("Review Selection") {
-                        onFinished()
-                    }
-                    .buttonStyle(.borderedProminent)
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding()
         }
-        .padding()
     }
     
     private func advance() {

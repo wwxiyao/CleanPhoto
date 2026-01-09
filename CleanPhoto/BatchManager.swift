@@ -1,5 +1,6 @@
 import Foundation
 import Photos
+import Combine
 
 @MainActor
 final class BatchManager: ObservableObject {
@@ -22,7 +23,7 @@ final class BatchManager: ObservableObject {
     }
     
     private var unprocessedAssets: [PhotoAsset] {
-        allAssets.filter { !processedAssetIds.contains($1.id) }
+        allAssets.filter { !processedAssetIds.contains($0.id) }
     }
     
     func nextBatch() {

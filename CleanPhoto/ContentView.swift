@@ -81,8 +81,8 @@ struct ContentView: View {
         .onAppear {
             viewModel.reloadIfNeeded()
         }
-        .onChange(of: scenePhase) { phase in
-            viewModel.handleScenePhaseChange(phase)
+        .onChange(of: scenePhase) { oldPhase, newPhase in
+            viewModel.handleScenePhaseChange(newPhase)
         }
     }
 }

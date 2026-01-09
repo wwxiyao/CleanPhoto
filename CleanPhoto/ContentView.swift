@@ -6,56 +6,87 @@
 //
 
 import SwiftUI
-import SwiftData
+import UIKit
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
+    @StateObject private var viewModel = LibraryViewModel(service: PhotoLibraryService())
+    @Environment(\.openURL) private var openURL
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
+        NavigationStack {
+            Group {
+                switch viewModel.accessState {
+                case .notDetermined:
+                    EmptyStateView(
+                        title: "Photo Access Needed",
+                        message: "Allow access to your library so we can load photos to review.",
+                        actionTitle: "Allow Access"
+                    ) {
+                        viewModel.requestPermissionAndLoad()
+                    }
+                case .denied, .restricted:
+                    EmptyStateView(
+                        title: "Photo Access Disabled",
+                        message: "Enable photo access in Settings to continue.",
+                        actionTitle: "Open Settings"
+                    ) {
+                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                            openURL(url)
+                        }
+                    }
+                case .authorized, .limited:
+                    if viewModel.isLoading {
+                        ProgressView("Loading Photos...")
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else if viewModel.isReviewingBatch {
+                        BatchReviewView(
+                            assets: Array(viewModel.batchManager.pendingDeleteAssets),
+                            onRecover: viewModel.recoverAsset,
+                            onDeleteAll: viewModel.confirmDeletion,
+                            onSkip: viewModel.skipBatch
+                        )
+                    } else if viewModel.batchManager.currentBatch.isEmpty {
+                        EmptyStateView(
+                            title: viewModel.batchManager.hasMorePhotos ? "Batch Empty" : "All Done!",
+                            message: viewModel.batchManager.hasMorePhotos ? "Something went wrong, try to load next batch." : "You've reviewed all your photos. Great job!",
+                            actionTitle: viewModel.batchManager.hasMorePhotos ? "Next Batch" : "Reload All"
+                        ) {
+                            if viewModel.batchManager.hasMorePhotos {
+                                viewModel.startNextBatch()
+                            } else {
+                                Task { await viewModel.loadAssets() }
+                            }
+                        }
+                    } else {
+                        SwipeContainerView(
+                            assets: viewModel.batchManager.currentBatch,
+                            onSwipeUp: viewModel.batchManager.markAsDelete,
+                            onSwipeLeft: viewModel.batchManager.markAsKeep,
+                            onFinished: viewModel.finishBatchInteraction
+                        )
+                        .overlay {
+                            if viewModel.isDeleting {
+                                ZStack {
+                                    Color.black.opacity(0.3).ignoresSafeArea()
+                                    ProgressView("Deleting Photos...")
+                                }
+                            }
+                        }
                     }
                 }
-                .onDelete(perform: deleteItems)
             }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
-                }
-            }
-        } detail: {
-            Text("Select an item")
+            .navigationTitle("CleanPhoto")
         }
-    }
-
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
+        .onAppear {
+            viewModel.reloadIfNeeded()
         }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
-            }
+        .onChange(of: scenePhase) { phase in
+            viewModel.handleScenePhaseChange(phase)
         }
     }
 }
 
 #Preview {
     ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
 }

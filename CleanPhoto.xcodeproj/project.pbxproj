@@ -6,27 +6,8 @@
 	objectVersion = 77;
 	objects = {
 
-/* Begin PBXContainerItemProxy section */
-		0B455C252F11489C009FEC71 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 0B455C0D2F11489A009FEC71 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 0B455C142F11489A009FEC71;
-			remoteInfo = CleanPhoto;
-		};
-		0B455C2F2F11489C009FEC71 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 0B455C0D2F11489A009FEC71 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 0B455C142F11489A009FEC71;
-			remoteInfo = CleanPhoto;
-		};
-/* End PBXContainerItemProxy section */
-
 /* Begin PBXFileReference section */
 		0B455C152F11489A009FEC71 /* CleanPhoto.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CleanPhoto.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		0B455C242F11489C009FEC71 /* CleanPhotoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CleanPhotoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		0B455C2E2F11489C009FEC71 /* CleanPhotoUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CleanPhotoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -35,34 +16,10 @@
 			path = CleanPhoto;
 			sourceTree = "<group>";
 		};
-		0B455C272F11489C009FEC71 /* CleanPhotoTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = CleanPhotoTests;
-			sourceTree = "<group>";
-		};
-		0B455C312F11489C009FEC71 /* CleanPhotoUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = CleanPhotoUITests;
-			sourceTree = "<group>";
-		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		0B455C122F11489A009FEC71 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		0B455C212F11489C009FEC71 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		0B455C2B2F11489C009FEC71 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -76,8 +33,6 @@
 			isa = PBXGroup;
 			children = (
 				0B455C172F11489A009FEC71 /* CleanPhoto */,
-				0B455C272F11489C009FEC71 /* CleanPhotoTests */,
-				0B455C312F11489C009FEC71 /* CleanPhotoUITests */,
 				0B455C162F11489A009FEC71 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -86,8 +41,6 @@
 			isa = PBXGroup;
 			children = (
 				0B455C152F11489A009FEC71 /* CleanPhoto.app */,
-				0B455C242F11489C009FEC71 /* CleanPhotoTests.xctest */,
-				0B455C2E2F11489C009FEC71 /* CleanPhotoUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -117,52 +70,6 @@
 			productReference = 0B455C152F11489A009FEC71 /* CleanPhoto.app */;
 			productType = "com.apple.product-type.application";
 		};
-		0B455C232F11489C009FEC71 /* CleanPhotoTests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 0B455C3B2F11489C009FEC71 /* Build configuration list for PBXNativeTarget "CleanPhotoTests" */;
-			buildPhases = (
-				0B455C202F11489C009FEC71 /* Sources */,
-				0B455C212F11489C009FEC71 /* Frameworks */,
-				0B455C222F11489C009FEC71 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				0B455C262F11489C009FEC71 /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				0B455C272F11489C009FEC71 /* CleanPhotoTests */,
-			);
-			name = CleanPhotoTests;
-			packageProductDependencies = (
-			);
-			productName = CleanPhotoTests;
-			productReference = 0B455C242F11489C009FEC71 /* CleanPhotoTests.xctest */;
-			productType = "com.apple.product-type.bundle.unit-test";
-		};
-		0B455C2D2F11489C009FEC71 /* CleanPhotoUITests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 0B455C3E2F11489C009FEC71 /* Build configuration list for PBXNativeTarget "CleanPhotoUITests" */;
-			buildPhases = (
-				0B455C2A2F11489C009FEC71 /* Sources */,
-				0B455C2B2F11489C009FEC71 /* Frameworks */,
-				0B455C2C2F11489C009FEC71 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				0B455C302F11489C009FEC71 /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				0B455C312F11489C009FEC71 /* CleanPhotoUITests */,
-			);
-			name = CleanPhotoUITests;
-			packageProductDependencies = (
-			);
-			productName = CleanPhotoUITests;
-			productReference = 0B455C2E2F11489C009FEC71 /* CleanPhotoUITests.xctest */;
-			productType = "com.apple.product-type.bundle.ui-testing";
-		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -175,14 +82,6 @@
 				TargetAttributes = {
 					0B455C142F11489A009FEC71 = {
 						CreatedOnToolsVersion = 26.0.1;
-					};
-					0B455C232F11489C009FEC71 = {
-						CreatedOnToolsVersion = 26.0.1;
-						TestTargetID = 0B455C142F11489A009FEC71;
-					};
-					0B455C2D2F11489C009FEC71 = {
-						CreatedOnToolsVersion = 26.0.1;
-						TestTargetID = 0B455C142F11489A009FEC71;
 					};
 				};
 			};
@@ -201,28 +100,12 @@
 			projectRoot = "";
 			targets = (
 				0B455C142F11489A009FEC71 /* CleanPhoto */,
-				0B455C232F11489C009FEC71 /* CleanPhotoTests */,
-				0B455C2D2F11489C009FEC71 /* CleanPhotoUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		0B455C132F11489A009FEC71 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		0B455C222F11489C009FEC71 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		0B455C2C2F11489C009FEC71 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -239,34 +122,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		0B455C202F11489C009FEC71 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		0B455C2A2F11489C009FEC71 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXTargetDependency section */
-		0B455C262F11489C009FEC71 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 0B455C142F11489A009FEC71 /* CleanPhoto */;
-			targetProxy = 0B455C252F11489C009FEC71 /* PBXContainerItemProxy */;
-		};
-		0B455C302F11489C009FEC71 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 0B455C142F11489A009FEC71 /* CleanPhoto */;
-			targetProxy = 0B455C2F2F11489C009FEC71 /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		0B455C362F11489C009FEC71 /* Debug */ = {
@@ -400,6 +256,7 @@
 				DEVELOPMENT_TEAM = QBYP3QL3F6;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "CleanPhoto needs access to your photos to review and delete them.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -432,6 +289,7 @@
 				DEVELOPMENT_TEAM = QBYP3QL3F6;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "CleanPhoto needs access to your photos to review and delete them.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -454,90 +312,6 @@
 			};
 			name = Release;
 		};
-		0B455C3C2F11489C009FEC71 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = QBYP3QL3F6;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = wxynjx.CleanPhotoTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CleanPhoto.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/CleanPhoto";
-			};
-			name = Debug;
-		};
-		0B455C3D2F11489C009FEC71 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = QBYP3QL3F6;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = wxynjx.CleanPhotoTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CleanPhoto.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/CleanPhoto";
-			};
-			name = Release;
-		};
-		0B455C3F2F11489C009FEC71 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = QBYP3QL3F6;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = wxynjx.CleanPhotoUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = CleanPhoto;
-			};
-			name = Debug;
-		};
-		0B455C402F11489C009FEC71 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = QBYP3QL3F6;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = wxynjx.CleanPhotoUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = CleanPhoto;
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -555,24 +329,6 @@
 			buildConfigurations = (
 				0B455C392F11489C009FEC71 /* Debug */,
 				0B455C3A2F11489C009FEC71 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		0B455C3B2F11489C009FEC71 /* Build configuration list for PBXNativeTarget "CleanPhotoTests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				0B455C3C2F11489C009FEC71 /* Debug */,
-				0B455C3D2F11489C009FEC71 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		0B455C3E2F11489C009FEC71 /* Build configuration list for PBXNativeTarget "CleanPhotoUITests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				0B455C3F2F11489C009FEC71 /* Debug */,
-				0B455C402F11489C009FEC71 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

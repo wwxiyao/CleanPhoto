@@ -191,8 +191,9 @@ struct SwipeCardView: View {
     private func requestDeviceModel() async -> String? {
         await withCheckedContinuation { continuation in
             let options = PHImageRequestOptions()
-            options.deliveryMode = .highQualityFormat
-            options.isNetworkAccessAllowed = true
+            options.deliveryMode = .fastFormat // Changed from .highQualityFormat to avoid downloading full image if possible, or just accept lower quality for metadata
+            options.isNetworkAccessAllowed = false // Disable network access to prevent 2-3s iCloud download lag
+            options.isSynchronous = false
 
             var didResume = false
             PHImageManager.default().requestImageDataAndOrientation(
@@ -205,7 +206,12 @@ struct SwipeCardView: View {
                     continuation.resume(returning: nil)
                     return
                 }
-                continuation.resume(returning: Self.deviceText(from: data))
+                
+                // Offload heavy CGImageSource creation to background
+                Task.detached(priority: .userInitiated) {
+                    let text = Self.deviceText(from: data)
+                    continuation.resume(returning: text)
+                }
             }
         }
     }

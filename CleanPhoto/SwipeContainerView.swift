@@ -16,6 +16,23 @@ struct SwipeContainerView: View {
             let cardHeight = min(proxy.size.height * 0.72, 600)
 
             ZStack {
+                // Render the next card first (at the bottom) so it pre-loads
+                if currentIndex + 1 < assets.count {
+                     SwipeCardView(
+                        asset: assets[currentIndex + 1],
+                        progressText: "\(currentIndex + 2)/\(assets.count)",
+                        onSwipeUp: {}, // Helper card, no actions needed really but View requires it
+                        onSwipeLeft: {},
+                        onSwipeRight: nil
+                    )
+                    .frame(width: cardWidth, height: cardHeight)
+                    // Offset it slightly to look like a stack
+                    .scaleEffect(0.95)
+                    .offset(y: 10)
+                    .opacity(0.6)
+                    .disabled(true) // Disable interaction for the background card
+                }
+                
                 if currentIndex < assets.count {
                     let progressText = "\(currentIndex + 1)/\(assets.count)"
 

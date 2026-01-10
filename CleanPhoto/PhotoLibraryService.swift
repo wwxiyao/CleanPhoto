@@ -13,21 +13,15 @@ final class PhotoLibraryService {
         }
     }
 
-    func loadAssets() async -> [PhotoAsset] {
+    func loadAssets() async -> PHFetchResult<PHAsset> {
         await withCheckedContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
                 let options = PHFetchOptions()
-                options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
+                // Sort by creation date ascending (Oldest first) to match typical cleaning flow
+                options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: true)]
 
                 let result = PHAsset.fetchAssets(with: .image, options: options)
-                var assets: [PhotoAsset] = []
-                assets.reserveCapacity(result.count)
-
-                result.enumerateObjects { asset, _, _ in
-                    assets.append(PhotoAsset(asset: asset))
-                }
-
-                continuation.resume(returning: assets)
+                continuation.resume(returning: result)
             }
         }
     }

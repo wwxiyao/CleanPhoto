@@ -8,42 +8,54 @@ final class BatchManager: ObservableObject {
     @Published private(set) var pendingDeleteAssets: Set<PhotoAsset> = []
     @Published private(set) var processedAssetIds: Set<String> = []
     
-    private var allAssets: [PhotoAsset] = []
+    private var fetchResult: PHFetchResult<PHAsset>?
     private var decisionHistory: [String] = [] // Track order of decisions for undo
     private let batchSize = 10
     
-    func setAssets(_ assets: [PhotoAsset]) {
-        self.allAssets = assets
+    // We iterate through the fetch result. Since we skip processed ones, we just need to find the next N.
+    // However, if we process random ones (which we don't anymore, we do chronological), we can just move forward.
+    // But since `processedAssetIds` might persist or be non-contiguous if we implemented "skip" differently,
+    // we should just scan. To optimize, we can keep an index if we assume we always move forward.
+    // For now, let's just scan from 0? No, that's O(N) every time.
+    // Let's keep `lastScannedIndex`.
+    private var lastScannedIndex = 0
+    
+    func setAssets(_ fetchResult: PHFetchResult<PHAsset>) {
+        self.fetchResult = fetchResult
         self.processedAssetIds.removeAll()
         self.pendingDeleteAssets.removeAll()
         self.decisionHistory.removeAll()
+        self.lastScannedIndex = 0
         nextBatch()
     }
     
     var hasMorePhotos: Bool {
-        unprocessedAssets.count > 0
-    }
-    
-    private var unprocessedAssets: [PhotoAsset] {
-        allAssets.filter { !processedAssetIds.contains($0.id) }
+        guard let fetchResult = fetchResult else { return false }
+        // Simple check: are there assets we haven't seen?
+        // This is an approximation if we rely on lastScannedIndex.
+        return lastScannedIndex < fetchResult.count
     }
     
     func nextBatch() {
-        let available = unprocessedAssets
-        guard !available.isEmpty else {
+        guard let fetchResult = fetchResult else {
             currentBatch = []
             return
         }
         
-        // Pick the next available assets (in order)
-        let count = min(available.count, batchSize)
-        let selection = available.prefix(count)
+        var newBatch: [PhotoAsset] = []
+        var index = lastScannedIndex
         
-        // Ensure they are sorted by creation date (chronological)
-        currentBatch = selection.sorted { (a, b) -> Bool in
-            guard let dateA = a.creationDate, let dateB = b.creationDate else { return false }
-            return dateA < dateB
+        while newBatch.count < batchSize && index < fetchResult.count {
+            let asset = fetchResult.object(at: index)
+            index += 1
+            
+            if !processedAssetIds.contains(asset.localIdentifier) {
+                newBatch.append(PhotoAsset(asset: asset))
+            }
         }
+        
+        lastScannedIndex = index
+        currentBatch = newBatch
         decisionHistory.removeAll()
     }
     

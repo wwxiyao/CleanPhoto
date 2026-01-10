@@ -4,7 +4,7 @@ import Combine
 @MainActor
 final class LibraryViewModel: ObservableObject {
     @Published private(set) var accessState: LibraryAccessState
-    @Published private(set) var assets: [PhotoAsset] = []
+    @Published private(set) var assets: PHFetchResult<PHAsset>? = nil
     @Published private(set) var isLoading = false
 
     @Published var isReviewingBatch = false
@@ -38,9 +38,8 @@ final class LibraryViewModel: ObservableObject {
             do {
                 let phAssets = assets.map { $0.asset }
                 try await service.deleteAssets(phAssets)
-                // Remove from local array to update UI immediately if needed
-                let idsToDelete = Set(assets.map { $0.id })
-                self.assets.removeAll { idsToDelete.contains($0.id) }
+                // With PHFetchResult, the system updates it automatically if we observe it, 
+                // but here we just proceed.
                 await MainActor.run {
                     completion()
                 }
@@ -68,12 +67,13 @@ final class LibraryViewModel: ObservableObject {
     func loadAssets() async {
         isLoading = true
         defer { isLoading = false }
-        assets = await service.loadAssets()
-        batchManager.setAssets(assets)
+        let result = await service.loadAssets()
+        assets = result
+        batchManager.setAssets(result)
     }
 
     func reloadIfNeeded() {
-        guard accessState.canRead, assets.isEmpty, !isLoading else { return }
+        guard accessState.canRead, assets == nil, !isLoading else { return }
         Task { await loadAssets() }
     }
 

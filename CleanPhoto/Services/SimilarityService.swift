@@ -18,18 +18,25 @@ actor SimilarityService {
     private let timeThreshold: TimeInterval = 10.0 // Seconds between shots
     private let similarityThreshold: Float = 10.0 // Vision feature print distance (lower is more similar)
     
-    func findSimilarGroupsStream(from assets: [PhotoAsset]) -> AsyncStream<[SimilarGroup]> {
+    func findSimilarGroupsStream(from fetchResult: PHFetchResult<PHAsset>?) -> AsyncStream<[SimilarGroup]> {
         AsyncStream { continuation in
+            guard let fetchResult = fetchResult else {
+                continuation.finish()
+                return
+            }
+            
             Task {
-                // 1. Sort by creation date
-                let sortedAssets = assets.sorted {
-                    ($0.creationDate ?? Date.distantPast) < ($1.creationDate ?? Date.distantPast)
-                }
+                // We will iterate through the fetchResult. 
+                // Since it is already sorted (creation date), we can just iterate.
+                // However, we need to convert to PhotoAsset for processing.
+                // We'll process in chunks or strictly sequentially.
                 
                 var currentCluster: [PhotoAsset] = []
                 
-                // 2. Cluster by Time first (Fast)
-                for asset in sortedAssets {
+                for i in 0..<fetchResult.count {
+                    let phAsset = fetchResult.object(at: i)
+                    let asset = PhotoAsset(asset: phAsset)
+                    
                     guard let lastAsset = currentCluster.last else {
                         currentCluster.append(asset)
                         continue
@@ -40,19 +47,30 @@ actor SimilarityService {
                         continue
                     }
                     
-                    if currentDate.timeIntervalSince(lastDate) < timeThreshold {
+                    // Note: fetchResult might be sorted Ascending or Descending.
+                    // If Ascending: current > last. Diff is current - last.
+                    // If Descending: current < last. Diff is last - current.
+                    let timeDiff = abs(currentDate.timeIntervalSince(lastDate))
+                    
+                    if timeDiff < timeThreshold {
                         currentCluster.append(asset)
                     } else {
                         // Time gap too large, process previous cluster
                         if currentCluster.count > 1 {
                             let verifiedGroups = await verifyVisualSimilarity(for: currentCluster)
                             if !verifiedGroups.isEmpty {
-                                continuation.yield(verifiedGroups)
+                                // Filter ignored groups
+                                let filtered = verifiedGroups.filter { !IgnoredGroupsService.shared.isIgnored(assets: $0.assets) }
+                                if !filtered.isEmpty {
+                                    continuation.yield(filtered)
+                                }
                             }
                         }
                         currentCluster = [asset]
-                        // Yield to main thread to avoid blocking UI too much
-                        await Task.yield()
+                        // Yield to main thread occasionally
+                        if i % 50 == 0 {
+                           await Task.yield()
+                        }
                     }
                 }
                 
@@ -60,7 +78,10 @@ actor SimilarityService {
                 if currentCluster.count > 1 {
                     let verifiedGroups = await verifyVisualSimilarity(for: currentCluster)
                     if !verifiedGroups.isEmpty {
-                        continuation.yield(verifiedGroups)
+                         let filtered = verifiedGroups.filter { !IgnoredGroupsService.shared.isIgnored(assets: $0.assets) }
+                         if !filtered.isEmpty {
+                             continuation.yield(filtered)
+                         }
                     }
                 }
                 

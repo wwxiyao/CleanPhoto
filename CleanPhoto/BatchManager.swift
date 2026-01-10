@@ -35,12 +35,12 @@ final class BatchManager: ObservableObject {
             return
         }
         
-        // Randomly pick up to 10 assets
+        // Pick the next available assets (in order)
         let count = min(available.count, batchSize)
-        let randomSelection = available.shuffled().prefix(count)
+        let selection = available.prefix(count)
         
-        // Sort the selection by creation date (chronological)
-        currentBatch = randomSelection.sorted { (a, b) -> Bool in
+        // Ensure they are sorted by creation date (chronological)
+        currentBatch = selection.sorted { (a, b) -> Bool in
             guard let dateA = a.creationDate, let dateB = b.creationDate else { return false }
             return dateA < dateB
         }

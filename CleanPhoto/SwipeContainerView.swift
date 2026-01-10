@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct SwipeContainerView: View {
     let assets: [PhotoAsset]
@@ -23,14 +24,17 @@ struct SwipeContainerView: View {
                         asset: assets[currentIndex],
                         progressText: progressText,
                         onSwipeUp: {
+                            triggerHaptic(style: .medium)
                             onSwipeUp(assets[currentIndex])
                             advance()
                         },
                         onSwipeLeft: {
+                            triggerHaptic(style: .light)
                             onSwipeLeft(assets[currentIndex])
                             advance()
                         },
                         onSwipeRight: currentIndex > 0 ? {
+                            triggerHaptic(style: .selection)
                             regress()
                         } : nil
                     )
@@ -66,5 +70,11 @@ struct SwipeContainerView: View {
             currentIndex -= 1
             onUndo?()
         }
+    }
+    
+    private func triggerHaptic(style: UIImpactFeedbackGenerator.FeedbackStyle) {
+        let generator = UIImpactFeedbackGenerator(style: style)
+        generator.prepare()
+        generator.impactOccurred()
     }
 }

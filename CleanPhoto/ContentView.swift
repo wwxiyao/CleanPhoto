@@ -19,17 +19,17 @@ struct ContentView: View {
                 switch viewModel.accessState {
                 case .notDetermined:
                     EmptyStateView(
-                        title: "Photo Access Needed",
-                        message: "Allow access to your library so we can load photos to review.",
-                        actionTitle: "Allow Access"
+                        title: "需要访问照片",
+                        message: "允许访问您的照片库以加载照片进行整理。",
+                        actionTitle: "允许访问"
                     ) {
                         viewModel.requestPermissionAndLoad()
                     }
                 case .denied, .restricted:
                     EmptyStateView(
-                        title: "Photo Access Disabled",
-                        message: "Enable photo access in Settings to continue.",
-                        actionTitle: "Open Settings"
+                        title: "照片访问已禁用",
+                        message: "在设置中开启照片访问权限以继续。",
+                        actionTitle: "打开设置"
                     ) {
                         if let url = URL(string: UIApplication.openSettingsURLString) {
                             openURL(url)
@@ -37,7 +37,7 @@ struct ContentView: View {
                     }
                 case .authorized, .limited:
                     if viewModel.isLoading {
-                        ProgressView("Loading Photos...")
+                        ProgressView("正在加载照片...")
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else if viewModel.isReviewingBatch {
                         BatchReviewView(
@@ -48,9 +48,9 @@ struct ContentView: View {
                         )
                     } else if viewModel.batchManager.currentBatch.isEmpty {
                         EmptyStateView(
-                            title: viewModel.batchManager.hasMorePhotos ? "Batch Empty" : "All Done!",
-                            message: viewModel.batchManager.hasMorePhotos ? "Something went wrong, try to load next batch." : "You've reviewed all your photos. Great job!",
-                            actionTitle: viewModel.batchManager.hasMorePhotos ? "Next Batch" : "Reload All"
+                            title: viewModel.batchManager.hasMorePhotos ? "本批次完成" : "全部完成！",
+                            message: viewModel.batchManager.hasMorePhotos ? "准备好加载下一批照片了吗？" : "您已经整理了所有照片。太棒了！",
+                            actionTitle: viewModel.batchManager.hasMorePhotos ? "下一批" : "重新加载"
                         ) {
                             if viewModel.batchManager.hasMorePhotos {
                                 viewModel.startNextBatch()
@@ -69,7 +69,7 @@ struct ContentView: View {
                             if viewModel.isDeleting {
                                 ZStack {
                                     Color.black.opacity(0.3).ignoresSafeArea()
-                                    ProgressView("Deleting Photos...")
+                                    ProgressView("正在删除照片...")
                                 }
                             }
                         }

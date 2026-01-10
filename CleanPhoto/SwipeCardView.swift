@@ -20,25 +20,11 @@ struct SwipeCardView: View {
                 .shadow(radius: 5)
             
             if let image {
-                GeometryReader { geometry in
-                    ZStack {
-                        // Background: Blurred version to fill space
-                        Image(uiImage: image)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: geometry.size.width, height: geometry.size.height)
-                            .blur(radius: 20)
-                            .opacity(0.5)
-                            .clipped()
-                        
-                        // Foreground: Actual image fitting the frame
-                        Image(uiImage: image)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: geometry.size.width, height: geometry.size.height)
-                    }
-                }
-                .clipShape(RoundedRectangle(cornerRadius: 20))
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
             } else {
                 ProgressView()
             }
@@ -232,13 +218,13 @@ private struct PhotoMetadata {
     var lines: [String] {
         var items: [String] = []
         if let dateText {
-            items.append("Date: \(dateText)")
+            items.append("日期: \(dateText)")
         }
         if let locationText {
-            items.append("Location: \(locationText)")
+            items.append("地点: \(locationText)")
         }
         if let deviceText {
-            items.append("Device: \(deviceText)")
+            items.append("设备: \(deviceText)")
         }
         return items
     }

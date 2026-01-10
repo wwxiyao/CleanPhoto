@@ -37,9 +37,9 @@ struct SwipeContainerView: View {
                         Image(systemName: "checkmark.seal.fill")
                             .font(.system(size: 60))
                             .foregroundColor(.blue)
-                        Text("Batch Complete!")
+                        Text("本批次完成！")
                             .font(.title2.bold())
-                        Button("Review Selection") {
+                        Button("检查已选项目") {
                             onFinished()
                         }
                         .buttonStyle(.borderedProminent)

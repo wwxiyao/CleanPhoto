@@ -11,14 +11,14 @@ struct BatchReviewView: View {
         VStack {
             if assets.isEmpty {
                 EmptyStateView(
-                    title: "Nothing to Delete",
-                    message: "You kept all photos in this batch.",
-                    actionTitle: "Next Batch",
+                    title: "没有可删除的项目",
+                    message: "您保留了本批次的所有照片。",
+                    actionTitle: "下一批",
                     action: onSkip
                 )
             } else {
                 List {
-                    Section(header: Text("Items to Delete (\(assets.count))")) {
+                    Section(header: Text("待删除项目 (\(assets.count))")) {
                         ForEach(assets) { asset in
                             HStack {
                                 PhotoThumbnailView(asset: asset)
@@ -27,7 +27,7 @@ struct BatchReviewView: View {
                                 
                                 Spacer()
                                 
-                                Button("Recover") {
+                                Button("恢复") {
                                     onRecover(asset)
                                 }
                                 .buttonStyle(.bordered)
@@ -38,7 +38,7 @@ struct BatchReviewView: View {
                 
                 VStack(spacing: 12) {
                     Button(action: onDeleteAll) {
-                        Text("Confirm and Delete \(assets.count) Photos")
+                        Text("确认并删除 \(assets.count) 张照片")
                             .frame(maxWidth: .infinity)
                             .padding()
                             .background(Color.red)
@@ -46,12 +46,12 @@ struct BatchReviewView: View {
                             .cornerRadius(12)
                     }
                     
-                    Button("Skip for Now", action: onSkip)
+                    Button("暂时跳过", action: onSkip)
                         .foregroundColor(.secondary)
                 }
                 .padding()
             }
         }
-        .navigationTitle("Review Batch")
+        .navigationTitle("检查删除项")
     }
 }

@@ -123,8 +123,11 @@ actor SimilarityService {
             }
             
             if currentGroupAssets.count > 1 {
-                // Default: empty set, so nothing is deleted by default. User manually chooses.
-                verifiedGroups.append(SimilarGroup(assets: currentGroupAssets, selectedForDelete: []))
+                let assets = currentGroupAssets
+                // Check if this group is ignored
+                if !IgnoredGroupsService.shared.isIgnored(assets: assets) {
+                    verifiedGroups.append(SimilarGroup(assets: assets, selectedForDelete: []))
+                }
             }
         }
         

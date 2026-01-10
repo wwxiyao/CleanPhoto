@@ -35,6 +35,14 @@ struct SimilarPhotosView: View {
                     List {
                         ForEach($similarGroups) { $group in
                             SimilarGroupRow(group: $group)
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button {
+                                        ignoreGroup(group)
+                                    } label: {
+                                        Label("忽略", systemImage: "eye.slash")
+                                    }
+                                    .tint(.gray)
+                                }
                         }
                     }
                     .listStyle(.plain)
@@ -87,6 +95,15 @@ struct SimilarPhotosView: View {
         }
         await MainActor.run {
             self.isScanning = false
+        }
+    }
+    
+    private func ignoreGroup(_ group: SimilarGroup) {
+        withAnimation {
+            IgnoredGroupsService.shared.ignoreGroup(assets: group.assets)
+            if let index = similarGroups.firstIndex(where: { $0.id == group.id }) {
+                similarGroups.remove(at: index)
+            }
         }
     }
     

@@ -35,7 +35,7 @@ actor SimilarityService {
                 
                 for i in 0..<fetchResult.count {
                     let phAsset = fetchResult.object(at: i)
-                    let asset = PhotoAsset(asset: phAsset)
+                    let asset = await MainActor.run { PhotoAsset(asset: phAsset) }
                     
                     guard let lastAsset = currentCluster.last else {
                         currentCluster.append(asset)
@@ -60,7 +60,7 @@ actor SimilarityService {
                             let verifiedGroups = await verifyVisualSimilarity(for: currentCluster)
                             if !verifiedGroups.isEmpty {
                                 // Filter ignored groups
-                                let filtered = verifiedGroups.filter { !IgnoredGroupsService.shared.isIgnored(assets: $0.assets) }
+                                let filtered = await asyncFilter(verifiedGroups) { !(await IgnoredGroupsService.shared.isIgnored(assets: $0.assets)) }
                                 if !filtered.isEmpty {
                                     continuation.yield(filtered)
                                 }
@@ -78,7 +78,7 @@ actor SimilarityService {
                 if currentCluster.count > 1 {
                     let verifiedGroups = await verifyVisualSimilarity(for: currentCluster)
                     if !verifiedGroups.isEmpty {
-                         let filtered = verifiedGroups.filter { !IgnoredGroupsService.shared.isIgnored(assets: $0.assets) }
+                         let filtered = await asyncFilter(verifiedGroups) { !(await IgnoredGroupsService.shared.isIgnored(assets: $0.assets)) }
                          if !filtered.isEmpty {
                              continuation.yield(filtered)
                          }
@@ -146,7 +146,7 @@ actor SimilarityService {
             if currentGroupAssets.count > 1 {
                 let assets = currentGroupAssets
                 // Check if this group is ignored
-                if !IgnoredGroupsService.shared.isIgnored(assets: assets) {
+                if !(await IgnoredGroupsService.shared.isIgnored(assets: assets)) {
                     verifiedGroups.append(SimilarGroup(assets: assets, selectedForDelete: []))
                 }
             }
@@ -194,5 +194,15 @@ actor SimilarityService {
                 }
             }
         }
+    }
+    
+    private func asyncFilter<T>(_ array: [T], predicate: (T) async throws -> Bool) async rethrows -> [T] {
+        var result: [T] = []
+        for item in array {
+            if try await predicate(item) {
+                result.append(item)
+            }
+        }
+        return result
     }
 }

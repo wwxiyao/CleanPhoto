@@ -34,7 +34,7 @@ struct SwipeContainerView: View {
                             advance()
                         },
                         onSwipeRight: currentIndex > 0 ? {
-                            triggerHaptic(style: .selection)
+                            triggerHaptic(style: .light)
                             regress()
                         } : nil
                     )

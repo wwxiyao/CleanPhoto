@@ -1,6 +1,6 @@
 import Foundation
 
-class IgnoredGroupsService {
+actor IgnoredGroupsService {
     static let shared = IgnoredGroupsService()
     private let key = "IgnoredSimilarGroups"
     

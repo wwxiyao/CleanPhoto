@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import Photos
 
 @MainActor
 final class LibraryViewModel: ObservableObject {

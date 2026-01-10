@@ -4,6 +4,7 @@ struct SwipeContainerView: View {
     let assets: [PhotoAsset]
     let onSwipeUp: (PhotoAsset) -> Void
     let onSwipeLeft: (PhotoAsset) -> Void
+    var onUndo: (() -> Void)? = nil
     let onFinished: () -> Void
     
     @State private var currentIndex = 0
@@ -28,7 +29,10 @@ struct SwipeContainerView: View {
                         onSwipeLeft: {
                             onSwipeLeft(assets[currentIndex])
                             advance()
-                        }
+                        },
+                        onSwipeRight: currentIndex > 0 ? {
+                            regress()
+                        } : nil
                     )
                     .frame(width: cardWidth, height: cardHeight)
                     .id(assets[currentIndex].id) // Ensure view identity changes
@@ -54,6 +58,13 @@ struct SwipeContainerView: View {
     private func advance() {
         withAnimation {
             currentIndex += 1
+        }
+    }
+    
+    private func regress() {
+        withAnimation {
+            currentIndex -= 1
+            onUndo?()
         }
     }
 }

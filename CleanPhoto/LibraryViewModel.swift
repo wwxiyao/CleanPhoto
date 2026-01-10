@@ -9,6 +9,7 @@ final class LibraryViewModel: ObservableObject {
 
     @Published var isReviewingBatch = false
     @Published var isDeleting = false
+    @Published var isShowingSimilar = false
 
     private let service: PhotoLibraryService
     let batchManager = BatchManager()
@@ -16,6 +17,38 @@ final class LibraryViewModel: ObservableObject {
     init(service: PhotoLibraryService) {
         self.service = service
         self.accessState = LibraryAccessState(status: service.authorizationStatus())
+    }
+
+    func enterSimilarMode() {
+        isShowingSimilar = true
+    }
+
+    func exitSimilarMode() {
+        isShowingSimilar = false
+    }
+
+    func deleteSpecificAssets(_ assets: [PhotoAsset], completion: @escaping () -> Void) {
+        guard !assets.isEmpty else {
+            completion()
+            return
+        }
+        
+        isDeleting = true
+        Task {
+            do {
+                let phAssets = assets.map { $0.asset }
+                try await service.deleteAssets(phAssets)
+                // Remove from local array to update UI immediately if needed
+                let idsToDelete = Set(assets.map { $0.id })
+                self.assets.removeAll { idsToDelete.contains($0.id) }
+                await MainActor.run {
+                    completion()
+                }
+            } catch {
+                print("Deletion failed: \(error)")
+            }
+            isDeleting = false
+        }
     }
 
     func refreshAccessState() {

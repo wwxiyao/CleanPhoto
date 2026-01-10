@@ -36,7 +36,9 @@ struct ContentView: View {
                         }
                     }
                 case .authorized, .limited:
-                    if viewModel.isLoading {
+                    if viewModel.isShowingSimilar {
+                        SimilarPhotosView(viewModel: viewModel)
+                    } else if viewModel.isLoading {
                         ProgressView("正在加载照片...")
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else if viewModel.isReviewingBatch {
@@ -63,6 +65,7 @@ struct ContentView: View {
                             assets: viewModel.batchManager.currentBatch,
                             onSwipeUp: viewModel.batchManager.markAsDelete,
                             onSwipeLeft: viewModel.batchManager.markAsKeep,
+                            onUndo: viewModel.batchManager.undo,
                             onFinished: viewModel.finishBatchInteraction
                         )
                         .overlay {
@@ -77,6 +80,18 @@ struct ContentView: View {
                 }
             }
             .navigationTitle("CleanPhoto")
+            .toolbar {
+                if !viewModel.isShowingSimilar && !viewModel.isReviewingBatch && !viewModel.isLoading {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            viewModel.enterSimilarMode()
+                        } label: {
+                            Image(systemName: "square.on.square.dashed")
+                            Text("相似")
+                        }
+                    }
+                }
+            }
         }
         .onAppear {
             viewModel.reloadIfNeeded()

@@ -8,6 +8,7 @@ struct SwipeCardView: View {
     let progressText: String?
     let onSwipeUp: () -> Void
     let onSwipeLeft: () -> Void
+    let onSwipeRight: (() -> Void)? // Optional, because only available if history exists
     
     @State private var offset: CGSize = .zero
     @State private var image: UIImage?
@@ -77,13 +78,32 @@ struct SwipeCardView: View {
                 }
             }
             .padding(40)
+            
+            // Right swipe (Back) indicator
+            HStack {
+                if offset.width > 50 {
+                    Image(systemName: "arrow.uturn.backward.circle.fill")
+                        .font(.system(size: 50))
+                        .foregroundColor(.yellow)
+                        .padding()
+                        .background(Circle().fill(.white.opacity(0.8)))
+                        .transition(.scale)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.leading, 40)
+                }
+            }
         }
         .offset(offset)
         .rotationEffect(.degrees(Double(offset.width / 20)))
         .gesture(
             DragGesture()
                 .onChanged { gesture in
-                    offset = gesture.translation
+                    // Limit right swipe if no callback provided
+                    if gesture.translation.width > 0 && onSwipeRight == nil {
+                        offset = CGSize(width: gesture.translation.width * 0.1, height: gesture.translation.height)
+                    } else {
+                        offset = gesture.translation
+                    }
                 }
                 .onEnded { gesture in
                     handleDragEnded(gesture)
@@ -96,7 +116,7 @@ struct SwipeCardView: View {
     }
     
     private func handleDragEnded(_ gesture: DragGesture.Value) {
-        let horizontalThreshold: CGFloat = -150
+        let horizontalThreshold: CGFloat = 150
         let verticalThreshold: CGFloat = -150
         
         if gesture.translation.height < verticalThreshold {
@@ -105,12 +125,18 @@ struct SwipeCardView: View {
                 offset = CGSize(width: 0, height: -1000)
             }
             onSwipeUp()
-        } else if gesture.translation.width < horizontalThreshold {
+        } else if gesture.translation.width < -horizontalThreshold {
             // Swipe Left -> Keep
             withAnimation(.spring()) {
                 offset = CGSize(width: -1000, height: 0)
             }
             onSwipeLeft()
+        } else if gesture.translation.width > horizontalThreshold, let onSwipeRight {
+            // Swipe Right -> Back/Undo
+            withAnimation(.spring()) {
+                offset = CGSize(width: 1000, height: 0)
+            }
+            onSwipeRight()
         } else {
             // Reset
             withAnimation(.spring()) {

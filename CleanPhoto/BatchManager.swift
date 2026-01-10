@@ -9,12 +9,14 @@ final class BatchManager: ObservableObject {
     @Published private(set) var processedAssetIds: Set<String> = []
     
     private var allAssets: [PhotoAsset] = []
+    private var decisionHistory: [String] = [] // Track order of decisions for undo
     private let batchSize = 10
     
     func setAssets(_ assets: [PhotoAsset]) {
         self.allAssets = assets
         self.processedAssetIds.removeAll()
         self.pendingDeleteAssets.removeAll()
+        self.decisionHistory.removeAll()
         nextBatch()
     }
     
@@ -42,17 +44,31 @@ final class BatchManager: ObservableObject {
             guard let dateA = a.creationDate, let dateB = b.creationDate else { return false }
             return dateA < dateB
         }
+        decisionHistory.removeAll()
     }
     
     func markAsDelete(_ asset: PhotoAsset) {
         pendingDeleteAssets.insert(asset)
         processedAssetIds.insert(asset.id)
-        currentBatch.removeAll { $0.id == asset.id }
+        decisionHistory.append(asset.id)
+        // Do not remove from currentBatch so we can swipe back
     }
     
     func markAsKeep(_ asset: PhotoAsset) {
         processedAssetIds.insert(asset.id)
-        currentBatch.removeAll { $0.id == asset.id }
+        decisionHistory.append(asset.id)
+        // Do not remove from currentBatch so we can swipe back
+    }
+    
+    func undo() {
+        guard let lastId = decisionHistory.popLast() else { return }
+        
+        processedAssetIds.remove(lastId)
+        
+        // If it was marked for delete, remove it from there too
+        if let assetToRemove = pendingDeleteAssets.first(where: { $0.id == lastId }) {
+            pendingDeleteAssets.remove(assetToRemove)
+        }
     }
     
     func recoverAsset(_ asset: PhotoAsset) {

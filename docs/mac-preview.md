@@ -4,7 +4,7 @@
 
 ## 安装与启动
 
-已安装到 `/Users/niujunxin/Applications/CleanPhoto.app`。可从个人“应用程序”文件夹或 Spotlight 打开。另有 `dist/mac/CleanPhoto-Mac.zip` 本机试用备份。
+已安装到 `~/Applications/CleanPhoto.app`。可从个人“应用程序”文件夹或 Spotlight 打开。另有 `dist/mac/CleanPhoto-Mac.zip` 本机试用备份。
 
 采用 Mac Catalyst，与 iPhone 共用照片读取、相似分组、收藏、待删确认和整理进度逻辑。当前构建是给这台 Apple 芯片 Mac 使用的本机签名调试版，没有作为公证后的公开安装包发布；项目支持的 Mac 最低系统要求以生成的 Info.plist 为准。
 

@@ -1,6 +1,16 @@
 import Photos
 
-final class PhotoLibraryService {
+@MainActor
+protocol PhotoLibraryProviding {
+    func authorizationStatus() -> PHAuthorizationStatus
+    func requestAuthorization() async -> PHAuthorizationStatus
+    func loadAssets() async -> PHFetchResult<PHAsset>
+    func deleteAssets(_ assets: [PHAsset]) async throws
+    func setFavorite(_ favorite: Bool, for asset: PHAsset) async throws
+}
+
+@MainActor
+final class PhotoLibraryService: PhotoLibraryProviding {
     func authorizationStatus() -> PHAuthorizationStatus {
         PHPhotoLibrary.authorizationStatus(for: .readWrite)
     }
@@ -17,8 +27,8 @@ final class PhotoLibraryService {
         await withCheckedContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
                 let options = PHFetchOptions()
-                // Sort by creation date ascending (Oldest first) to match typical cleaning flow
-                options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: true)]
+                // Start chronological browsing and similarity scanning with the newest photos.
+                options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
 
                 let result = PHAsset.fetchAssets(with: .image, options: options)
                 continuation.resume(returning: result)
@@ -29,6 +39,12 @@ final class PhotoLibraryService {
     func deleteAssets(_ assets: [PHAsset]) async throws {
         try await PHPhotoLibrary.shared().performChanges {
             PHAssetChangeRequest.deleteAssets(assets as NSArray)
+        }
+    }
+
+    func setFavorite(_ favorite: Bool, for asset: PHAsset) async throws {
+        try await PHPhotoLibrary.shared().performChanges {
+            PHAssetChangeRequest(for: asset).isFavorite = favorite
         }
     }
 }

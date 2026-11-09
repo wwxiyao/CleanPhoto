@@ -22,47 +22,128 @@ struct PhotoGridView: View {
 
 struct PhotoThumbnailView: View {
     let asset: PhotoAsset
+    var height: CGFloat? = 110
+    var cornerRadius: CGFloat = 10
+    var scaleMode: ThumbnailScaleMode = .fill
+    var highQuality: Bool = false
+
+    var displayWidth: CGFloat? = nil
+    @Environment(\.displayScale) private var displayScale
+    @State private var loadedAssetID: String?
 
     @State private var image: UIImage?
-    private let targetSize = CGSize(width: 240, height: 240)
+    @State private var requestID: PHImageRequestID = PHInvalidImageRequestID
+    @State private var isDownloadingOriginal = false
+
+    private var thumbnailRequest: PhotoThumbnailRequest {
+        PhotoThumbnailRequest(assetID: asset.id,
+                              sourceSize: CGSize(width: asset.pixelWidth, height: asset.pixelHeight),
+                              displayWidth: displayWidth, displayScale: displayScale,
+                              scaleMode: scaleMode, highQuality: highQuality)
+    }
+
+    private var requestContentMode: PHImageContentMode {
+        switch scaleMode {
+        case .fill:
+            return .aspectFill
+        case .fit:
+            return .aspectFit
+        }
+    }
 
     var body: some View {
-        ZStack {
+        let card = ZStack {
             Rectangle()
                 .fill(Color(.secondarySystemBackground))
 
             if let image {
                 Image(uiImage: image)
                     .resizable()
-                    .scaledToFill()
+                    .modifier(ThumbnailScaleModifier(mode: scaleMode))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .frame(height: 110)
-        .clipped()
-        .cornerRadius(10)
-        .task(id: asset.id) {
-            image = await requestThumbnail()
+
+        Group {
+            if let height {
+                card.frame(height: height)
+            } else {
+                card.aspectRatio(max(asset.aspectRatio, 0.1), contentMode: .fit)
+            }
         }
+        .frame(maxWidth: .infinity)
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+        .overlay(alignment: .bottomTrailing) {
+            if highQuality && isDownloadingOriginal {
+                ProgressView()
+                    .padding(8)
+                    .background(.thinMaterial, in: Capsule())
+                    .padding(8)
+                    .allowsHitTesting(false)
+                    .accessibilityLabel("正在加载清晰照片")
+            }
+        }
+        .task(id: thumbnailRequest) {
+            if loadedAssetID != asset.id {
+                image = nil
+                loadedAssetID = asset.id
+            }
+            requestThumbnail()
+        }
+        .onDisappear { cancelRequest() }
     }
 
-    private func requestThumbnail() async -> UIImage? {
-        await withCheckedContinuation { continuation in
-            let options = PHImageRequestOptions()
-            options.deliveryMode = .fastFormat
-            options.resizeMode = .fast
-            options.isNetworkAccessAllowed = true
+    private func requestThumbnail() {
+        cancelRequest()
 
-            var didResume = false
-            PHImageManager.default().requestImage(
-                for: asset.asset,
-                targetSize: targetSize,
-                contentMode: .aspectFill,
-                options: options
-            ) { image, _ in
-                guard !didResume else { return }
-                didResume = true
-                continuation.resume(returning: image)
+        let options = PHImageRequestOptions()
+        options.deliveryMode = thumbnailRequest.deliveryMode
+        options.resizeMode = thumbnailRequest.resizeMode
+        options.isNetworkAccessAllowed = true
+
+        isDownloadingOriginal = highQuality
+        var localRequestID: PHImageRequestID = PHInvalidImageRequestID
+        localRequestID = PHImageManager.default().requestImage(
+            for: asset.asset,
+            targetSize: thumbnailRequest.targetSize,
+            contentMode: requestContentMode,
+            options: options
+        ) { image, info in
+            DispatchQueue.main.async {
+                guard localRequestID == requestID else { return }
+                if let image {
+                    self.image = image
+                }
+
+                let isDegraded = (info?[PHImageResultIsDegradedKey] as? Bool) ?? false
+                let isCancelled = (info?[PHImageCancelledKey] as? Bool) ?? false
+                if highQuality {
+                    self.isDownloadingOriginal = !isCancelled && isDegraded
+                } else {
+                    self.isDownloadingOriginal = false
+                }
             }
+        }
+        requestID = localRequestID
+    }
+
+    private func cancelRequest() {
+        guard requestID != PHInvalidImageRequestID else { return }
+        PHImageManager.default().cancelImageRequest(requestID)
+        requestID = PHInvalidImageRequestID
+        isDownloadingOriginal = false
+    }
+}
+
+private struct ThumbnailScaleModifier: ViewModifier {
+    let mode: ThumbnailScaleMode
+
+    func body(content: Content) -> some View {
+        switch mode {
+        case .fill:
+            content.scaledToFill()
+        case .fit:
+            content.scaledToFit()
         }
     }
 }

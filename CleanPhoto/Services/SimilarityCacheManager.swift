@@ -13,7 +13,7 @@ actor SimilarityCacheManager {
     func save(prints: [String: VNFeaturePrintObservation]) {
         do {
             let data = try NSKeyedArchiver.archivedData(withRootObject: prints, requiringSecureCoding: true)
-            try data.write(to: fileURL)
+            try data.write(to: fileURL, options: .atomic)
         } catch {
             print("Failed to save feature prints: \(error)")
         }

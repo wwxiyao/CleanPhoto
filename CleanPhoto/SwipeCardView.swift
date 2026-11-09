@@ -5,194 +5,250 @@ import ImageIO
 
 struct SwipeCardView: View {
     let asset: PhotoAsset
-    let progressText: String?
     let onSwipeUp: () -> Void
     let onSwipeLeft: () -> Void
-    let onSwipeRight: (() -> Void)? // Optional, because only available if history exists
-    
+    let viewModel: LibraryViewModel
+    let onOpen: (UIImage?) -> Void
+
     @State private var offset: CGSize = .zero
-    @State private var image: UIImage?
+    @StateObject private var loader = PhotoDetailImageLoader()
     @State private var metadata: PhotoMetadata?
-    
+
     var body: some View {
+        VStack(spacing: 8) {
+            GeometryReader { proxy in
+                let size = PhotoViewerLayout.sizeWithAccessories(
+                    photoSize: CGSize(width: max(asset.pixelWidth, 1), height: max(asset.pixelHeight, 1)),
+                    availableSize: proxy.size,
+                    accessoryHeight: 52
+                )
+                VStack(spacing: 8) {
+                    photoContent
+                        .frame(width: size.width, height: size.height)
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .strokeBorder(Color.primary.opacity(0.12), lineWidth: 0.5)
+                        }
+                    HStack {
+                        Spacer(minLength: 0)
+                        PhotoFavoriteButton(asset: asset, viewModel: viewModel, showsTitle: size.width >= 110)
+                    }
+                    .frame(height: 44)
+                }
+                .frame(width: size.width)
+                .position(x: proxy.size.width / 2, y: proxy.size.height / 2)
+            }
+            .clipped()
+            .contentShape(Rectangle())
+            .padding(.horizontal, 6)
+
+            if let metadata {
+                VStack(alignment: .leading, spacing: 5) {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(metadata.dateText ?? "未记录日期")
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(.primary)
+                        Spacer(minLength: 12)
+                    }
+                    Label(metadata.locationText ?? "未记录位置", systemImage: "mappin.and.ellipse")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 4)
+            }
+        }
+    }
+
+    private var photoContent: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Color(.secondarySystemBackground))
-                .shadow(radius: 5)
-            
-            if let image {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .clipShape(RoundedRectangle(cornerRadius: 20))
+            if let image = loader.image {
+                InlineZoomablePhoto(image: image, onZoom: { loader.loadOriginal(asset) },
+                    onChanged: { offset = $0 }, onEnded: handleReviewEnded,
+                    onOpen: { onOpen(loader.image) })
+                .overlay(alignment: .bottom) {
+                    if loader.loadingOriginal {
+                        ProgressView(loader.progress > 0 ? "正在下载原图 \(Int(loader.progress * 100))%" : "正在加载细节…")
+                            .font(.caption)
+                            .padding(10)
+                            .background(.thinMaterial, in: Capsule())
+                            .padding(8)
+                            .allowsHitTesting(false)
+                    } else if let error = loader.error {
+                        Button(error + " · 重试") { loader.retryOriginal(asset) }
+                            .font(.caption)
+                            .padding(10)
+                            .background(.thinMaterial, in: Capsule())
+                            .padding(8)
+                    }
+                }
+            } else if let error = loader.error {
+                VStack(spacing: 12) {
+                    Text(error).font(.caption)
+                    Button("重试") { loader.load(asset) }
+                }
             } else {
                 ProgressView()
             }
 
-            if let progressText {
-                Text(progressText)
-                    .font(.caption.weight(.semibold))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(Color.black.opacity(0.6))
-                    .clipShape(Capsule())
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    .padding(12)
-            }
-
-            if let metadata, !metadata.lines.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
-                    ForEach(metadata.lines, id: \.self) { line in
-                        Text(line)
-                            .font(.caption)
-                            .foregroundColor(.white)
-                    }
-                }
-                .padding(10)
-                .background(Color.black.opacity(0.55))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
-                .padding(12)
-            }
-            
-            // Visual indicators for swipe direction
-            VStack {
-                if offset.height < -50 {
-                    Image(systemName: "trash")
-                        .font(.system(size: 50))
-                        .foregroundColor(.red)
-                        .padding()
-                        .background(Circle().fill(.white.opacity(0.8)))
-                        .transition(.scale)
-                }
-                Spacer()
-                if offset.width < -50 {
-                    Image(systemName: "checkmark.circle")
-                        .font(.system(size: 50))
-                        .foregroundColor(.green)
-                        .padding()
-                        .background(Circle().fill(.white.opacity(0.8)))
-                        .transition(.scale)
-                }
-            }
-            .padding(40)
-            
-            // Right swipe (Back) indicator
-            HStack {
-                if offset.width > 50 {
-                    Image(systemName: "arrow.uturn.backward.circle.fill")
-                        .font(.system(size: 50))
-                        .foregroundColor(.yellow)
-                        .padding()
-                        .background(Circle().fill(.white.opacity(0.8)))
-                        .transition(.scale)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.leading, 40)
-                }
+            if let feedback = PhotoSwipeFeedback.current(translation: offset) {
+                swipeFeedback(feedback)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
             }
         }
-        .offset(offset)
-        .rotationEffect(.degrees(Double(offset.width / 20)))
-        .gesture(
-            DragGesture()
-                .onChanged { gesture in
-                    // Limit right swipe if no callback provided
-                    if gesture.translation.width > 0 && onSwipeRight == nil {
-                        offset = CGSize(width: gesture.translation.width * 0.1, height: gesture.translation.height)
-                    } else {
-                        offset = gesture.translation
-                    }
-                }
-                .onEnded { gesture in
-                    handleDragEnded(gesture)
-                }
-        )
+        .contentShape(Rectangle())
+        .accessibilityAction(named: "放大查看照片") { onOpen(loader.image) }
         .task(id: asset.id) {
-            loadProgressiveImage()
-            metadata = await loadMetadata()
-        }
-    }
-    
-    private func handleDragEnded(_ gesture: DragGesture.Value) {
-        let horizontalThreshold: CGFloat = 150
-        let verticalThreshold: CGFloat = -150
-        
-        if gesture.translation.height < verticalThreshold {
-            // Swipe Up -> Delete
-            withAnimation(.spring()) {
-                offset = CGSize(width: 0, height: -1000)
-            }
-            onSwipeUp()
-        } else if gesture.translation.width < -horizontalThreshold {
-            // Swipe Left -> Keep
-            withAnimation(.spring()) {
-                offset = CGSize(width: -1000, height: 0)
-            }
-            onSwipeLeft()
-        } else if gesture.translation.width > horizontalThreshold, let onSwipeRight {
-            // Swipe Right -> Back/Undo
-            withAnimation(.spring()) {
-                offset = CGSize(width: 1000, height: 0)
-            }
-            onSwipeRight()
-        } else {
-            // Reset
-            withAnimation(.spring()) {
-                offset = .zero
-            }
-        }
-    }
-    
-    private func loadProgressiveImage() {
-        let options = PHImageRequestOptions()
-        options.deliveryMode = .opportunistic
-        options.isNetworkAccessAllowed = true
-        options.isSynchronous = false
+            offset = .zero
+            metadata = nil
+            loader.load(asset)
 
-        PHImageManager.default().requestImage(
-            for: asset.asset,
-            targetSize: CGSize(width: 1000, height: 1000),
-            contentMode: .aspectFit,
-            options: options
-        ) { result, _ in
-            if let result = result {
-                self.image = result
-            }
+            await loadMetadata()
+        }
+        .onDisappear {
+            loader.clear()
         }
     }
 
-    private func loadMetadata() async -> PhotoMetadata? {
+    private func swipeFeedback(_ feedback: PhotoSwipeFeedback) -> some View {
+        let isDelete = feedback.decision == .pendingDelete
+        let tint = isDelete ? AppPalette.danger : AppPalette.success
+        let title = isDelete ? "待删除" : "保留"
+        let instruction = feedback.isReady
+            ? (isDelete ? "松手加入待删除" : "松手保留")
+            : (isDelete ? "继续上滑" : "继续左滑")
+
+        return GeometryReader { proxy in
+            ZStack {
+                tint.opacity(0.2 + feedback.progress * 0.25)
+                Color.black.opacity(0.15)
+                VStack(spacing: 10) {
+                    if proxy.size.height >= 160 {
+                        Image(systemName: isDelete ? "trash.fill" : "checkmark.circle.fill")
+                            .font(.system(size: 38, weight: .semibold))
+                    }
+                    Text(title)
+                        .font(.system(size: proxy.size.height < 160 ? 24 : 36, weight: .bold))
+                    if proxy.size.height >= 100 {
+                        Text(instruction)
+                            .font(.subheadline.weight(.semibold))
+                    }
+                }
+                .foregroundStyle(.white)
+                .shadow(color: .black.opacity(0.35), radius: 4)
+                .padding(.horizontal, 16)
+            }
+            .frame(width: proxy.size.width, height: proxy.size.height)
+        }
+    }
+
+    private func handleReviewEnded(_ decision: PhotoSwipeDecision?) {
+        offset = .zero
+        switch decision {
+        case .pendingDelete: onSwipeUp()
+        case .keep: onSwipeLeft()
+        case nil: break
+        }
+    }
+
+    private func loadMetadata() async {
         let dateText = asset.creationDate.map { Self.dateFormatter.string(from: $0) }
-        
-        var locationText: String?
-        if let location = asset.location {
-            locationText = await resolveLocationName(location)
-        }
-        
-        let deviceText = await requestDeviceModel()
+        metadata = PhotoMetadata(
+            dateText: dateText,
+            locationText: asset.location == nil ? nil : "正在读取位置…",
+            deviceText: nil
+        )
 
-        guard dateText != nil || locationText != nil || deviceText != nil else { return nil }
-        return PhotoMetadata(dateText: dateText, locationText: locationText, deviceText: deviceText)
+        if let location = asset.location {
+            let name = await resolveLocationName(location)
+            guard !Task.isCancelled else { return }
+            metadata?.locationText = name ?? "暂时无法解析位置"
+        }
+
     }
 
     private func resolveLocationName(_ location: CLLocation) async -> String? {
+        let cacheKey = Self.locationCacheKey(for: location)
+        let cached = await SwipeMetadataCache.shared.cachedLocationName(for: cacheKey)
+        if cached.hit {
+            return cached.value
+        }
+
         let geocoder = CLGeocoder()
+        let resolved: String?
         do {
             let placemarks = try await geocoder.reverseGeocodeLocation(location, preferredLocale: Locale(identifier: "zh_CN"))
-            guard let placemark = placemarks.first else { return nil }
-            return placemark.locality ?? placemark.administrativeArea ?? placemark.country
+            guard let placemark = placemarks.first else {
+                await SwipeMetadataCache.shared.storeLocationName(nil, for: cacheKey)
+                return nil
+            }
+            let city = placemark.locality ?? placemark.administrativeArea
+            let district = placemark.subLocality
+            let components = [city, district == city ? nil : district].compactMap { $0 }
+            resolved = components.isEmpty ? placemark.country : components.joined(separator: " · ")
         } catch {
-            return nil
+            resolved = nil
+        }
+
+        await SwipeMetadataCache.shared.storeLocationName(resolved, for: cacheKey)
+        return resolved
+    }
+
+    private static func locationCacheKey(for location: CLLocation) -> String {
+        String(format: "%.3f,%.3f", location.coordinate.latitude, location.coordinate.longitude)
+    }
+
+    private static let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }()
+}
+
+actor SwipeMetadataCache {
+    static let shared = SwipeMetadataCache()
+
+    private enum CachedValue {
+        case value(String)
+        case missing
+    }
+
+    private var locationNames: [String: CachedValue] = [:]
+    private var deviceModels: [String: CachedValue] = [:]
+
+    func cachedLocationName(for key: String) -> (hit: Bool, value: String?) {
+        guard let cached = locationNames[key] else { return (false, nil) }
+        switch cached {
+        case .value(let value):
+            return (true, value)
+        case .missing:
+            return (true, nil)
         }
     }
 
-    private func requestDeviceModel() async -> String? {
-        await withCheckedContinuation { continuation in
+    func storeLocationName(_ value: String?, for key: String) {
+        if let value {
+            locationNames[key] = .value(value)
+        } else {
+            locationNames[key] = .missing
+        }
+    }
+
+    func deviceModel(for asset: PhotoAsset) async -> String? {
+        let cached = cachedDeviceModel(for: asset.id)
+        if cached.hit {
+            return cached.value
+        }
+
+        let resolved: String? = await withCheckedContinuation { (continuation: CheckedContinuation<String?, Never>) in
             let options = PHImageRequestOptions()
-            options.deliveryMode = .fastFormat // Changed from .highQualityFormat to avoid downloading full image if possible, or just accept lower quality for metadata
-            options.isNetworkAccessAllowed = false // Disable network access to prevent 2-3s iCloud download lag
+            options.deliveryMode = .fastFormat
+            options.isNetworkAccessAllowed = false
             options.isSynchronous = false
 
             var didResume = false
@@ -206,58 +262,56 @@ struct SwipeCardView: View {
                     continuation.resume(returning: nil)
                     return
                 }
-                
-                // Offload heavy CGImageSource creation to background
+
                 Task.detached(priority: .userInitiated) {
-                    let text = Self.deviceText(from: data)
+                    let text = PhotoDeviceMetadata.text(from: data)
                     continuation.resume(returning: text)
                 }
             }
         }
+
+        storeDeviceModel(resolved, for: asset.id)
+        return resolved
     }
 
-    private static func deviceText(from imageData: Data) -> String? {
-        guard let source = CGImageSourceCreateWithData(imageData as CFData, nil),
-              let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
-              let tiff = properties[kCGImagePropertyTIFFDictionary] as? [CFString: Any] else {
-            return nil
+    func cachedDeviceModel(for assetID: String) -> (hit: Bool, value: String?) {
+        guard let cached = deviceModels[assetID] else { return (false, nil) }
+        switch cached {
+        case .value(let value):
+            return (true, value)
+        case .missing:
+            return (true, nil)
         }
-
-        let make = (tiff[kCGImagePropertyTIFFMake] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let model = (tiff[kCGImagePropertyTIFFModel] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        let parts = [make, model].compactMap { value -> String? in
-            guard let value, !value.isEmpty else { return nil }
-            return value
-        }
-
-        guard !parts.isEmpty else { return nil }
-        return parts.joined(separator: " ")
     }
 
-    private static let dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter
-    }()
+    func storeDeviceModel(_ value: String?, for assetID: String) {
+        if let value {
+            deviceModels[assetID] = .value(value)
+        } else {
+            deviceModels[assetID] = .missing
+        }
+    }
 }
 
-private struct PhotoMetadata {
-    let dateText: String?
-    let locationText: String?
-    let deviceText: String?
+/// Reuses the viewer's native zoom surface in place; controls remain outside it.
+private struct InlineZoomablePhoto: UIViewRepresentable {
+    let image: UIImage
+    let onZoom: () -> Void
+    let onChanged: (CGSize) -> Void
+    let onEnded: (PhotoSwipeDecision?) -> Void
+    let onOpen: () -> Void
 
-    var lines: [String] {
-        var items: [String] = []
-        if let dateText {
-            items.append("日期: \(dateText)")
-        }
-        if let locationText {
-            items.append("地点: \(locationText)")
-        }
-        if let deviceText {
-            items.append("设备: \(deviceText)")
-        }
-        return items
+    func makeUIView(context: Context) -> PhotoZoomScrollView {
+        let view = PhotoZoomScrollView()
+        view.backgroundColor = .clear
+        return view
+    }
+
+    func updateUIView(_ view: PhotoZoomScrollView, context: Context) {
+        view.onZoom = onZoom
+        view.onReviewChanged = onChanged
+        view.onReviewEnded = onEnded
+        view.onOpen = onOpen
+        view.display(image)
     }
 }

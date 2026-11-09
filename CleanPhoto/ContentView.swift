@@ -21,20 +21,31 @@ struct ContentView: View {
                     EmptyStateView(
                         title: "需要访问照片",
                         message: "允许访问您的照片库以加载照片进行整理。",
-                        actionTitle: "允许访问"
-                    ) {
+                        systemImage: "lock.shield",
+                        accent: AppPalette.primary,
+                        actionTitle: "允许访问",
+                        action: {
                         viewModel.requestPermissionAndLoad()
-                    }
+                        }
+                    )
                 case .denied, .restricted:
                     EmptyStateView(
                         title: "照片访问已禁用",
                         message: "在设置中开启照片访问权限以继续。",
-                        actionTitle: "打开设置"
-                    ) {
-                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                        systemImage: "xmark.shield",
+                        accent: AppPalette.danger,
+                        actionTitle: "打开设置",
+                        action: {
+                        #if targetEnvironment(macCatalyst)
+                        let settingsURL = "x-apple.systempreferences:"
+                        #else
+                        let settingsURL = UIApplication.openSettingsURLString
+                        #endif
+                        if let url = URL(string: settingsURL) {
                             openURL(url)
                         }
-                    }
+                        }
+                    )
                 case .authorized, .limited:
                     if viewModel.isShowingSimilar {
                         SimilarPhotosView(viewModel: viewModel)
@@ -52,53 +63,72 @@ struct ContentView: View {
                         EmptyStateView(
                             title: viewModel.batchManager.hasMorePhotos ? "本批次完成" : "全部完成！",
                             message: viewModel.batchManager.hasMorePhotos ? "准备好加载下一批照片了吗？" : "您已经整理了所有照片。太棒了！",
-                            actionTitle: viewModel.batchManager.hasMorePhotos ? "下一批" : "重新加载"
-                        ) {
+                            systemImage: viewModel.batchManager.hasMorePhotos ? "sparkles.rectangle.stack" : "checkmark.seal",
+                            accent: AppPalette.primary,
+                            actionTitle: viewModel.batchManager.hasMorePhotos ? "下一批" : "重新整理",
+                            action: {
                             if viewModel.batchManager.hasMorePhotos {
                                 viewModel.startNextBatch()
                             } else {
-                                Task { await viewModel.loadAssets() }
+                                viewModel.restartReview()
                             }
-                        }
+                            }
+                        )
                     } else {
                         SwipeContainerView(
                             assets: viewModel.batchManager.currentBatch,
+                            currentIndex: viewModel.batchManager.currentIndex,
+                            viewModel: viewModel,
                             onSwipeUp: viewModel.batchManager.markAsDelete,
                             onSwipeLeft: viewModel.batchManager.markAsKeep,
-                            onUndo: viewModel.batchManager.undo,
                             onFinished: viewModel.finishBatchInteraction
                         )
-                        .overlay {
-                            if viewModel.isDeleting {
-                                ZStack {
-                                    Color.black.opacity(0.3).ignoresSafeArea()
-                                    ProgressView("正在删除照片...")
-                                }
-                            }
-                        }
                     }
                 }
             }
             .navigationTitle("CleanPhoto")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                if !viewModel.isShowingSimilar && !viewModel.isReviewingBatch && !viewModel.isLoading {
+                if viewModel.accessState.canRead && viewModel.assets != nil && !viewModel.isShowingSimilar && !viewModel.isReviewingBatch && !viewModel.isLoading {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
                             viewModel.enterSimilarMode()
                         } label: {
                             Image(systemName: "square.on.square.dashed")
-                            Text("相似")
+                            Text("相似照片")
                         }
+                        .font(.subheadline.weight(.medium))
+                        .accessibilityLabel("整理相似照片")
                     }
                 }
+            }
+        }
+        .disabled(viewModel.isDeleting)
+        .overlay {
+            if viewModel.isDeleting {
+                ZStack {
+                    Color.black.opacity(0.3).ignoresSafeArea()
+                    ProgressView("正在删除照片...")
+                        .padding(24)
+                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+                }
+                .accessibilityAddTraits(.isModal)
             }
         }
         .onAppear {
             viewModel.reloadIfNeeded()
         }
-        .onChange(of: scenePhase) { oldPhase, newPhase in
+        .onChange(of: scenePhase) { _, newPhase in
             viewModel.handleScenePhaseChange(newPhase)
         }
+        .alert(item: $viewModel.activeAlert) { alertState in
+            Alert(
+                title: Text(alertState.title),
+                message: Text(alertState.message),
+                dismissButton: .default(Text("确定"))
+            )
+        }
+        .tint(AppPalette.primary)
     }
 }
 
